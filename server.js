@@ -6,7 +6,7 @@ console.log('server');
 var s = 'hello';
 function greet(name){
   console.log(s+','+name);
-}
+};
 
 module.exports = greet;
 
@@ -15,8 +15,9 @@ var
 fs = require('fs'),
 url = require('url'),
 path = require('path'),
-http = require('http');
-
+http = require('http'),
+util = require('util');
+querystring = require('querystring');
 //获取root目录
 var root = path.resolve(process.argv[2] || '.');
 console.log('static root dir: '+root);
@@ -113,3 +114,120 @@ readerStream.on('end',function(){
 
 // readerStream.pipe(writeStream);
 console.log('读写完毕');
+
+
+//压缩和解压
+
+var zlib = require('zlib');
+fs.createReadStream(__dirname+ '/input.txt')
+.pipe(zlib.createGzip()).pipe(fs.createWriteStream(__dirname+'/output.txt.gz'));
+console.log('压缩完成');
+
+//解压
+// fs.createReadStream(__dirname+'/output.txt.gz').pipe(zlib.createGunzip())
+// .pipe(fs.createWriteStream(__dirname +'/input.txt'))
+
+function route(pathname){
+  console.log('about to route a request for '+ pathname);
+}
+
+function start(route){
+  function onRequest(request,response){
+    var pathname = url.parse(request.url).pathname;
+    console.log('URL'+ request.url);
+    console.log('request for'+ pathname + 'received');
+    route(pathname);
+    response.writeHead(200,{'Content-type': 'text/plain'});
+    response.write('hello world');
+    response.end(util.inspect(url.parse(request.url,true)));
+  }
+  http.createServer(onRequest).listen(8888);
+  console.log('server has started');
+}
+start(route);
+
+
+
+//常用工具模块util
+//inherits 函数用于继承
+function Base(){
+  this.name = 'base';
+  this.base = 1992 ;
+  this.sayHello = function(){
+    console.log('hello'+ this.name);
+  }
+}
+
+Base.prototype.showName = function(){
+  console.log(this.name);
+}
+function Sub(){
+  this.name = 'sub';
+}
+
+util.inherits(Sub,Base);    //Sub仅仅继承Base在原型中定义的函数showName，不会继承内部函数定义的变量和函数sayhello
+
+var subobj = new Sub();
+// subobj.sayHello();
+subobj.showName();
+
+//util.inspect()     将任意对象转成字符串
+function Person(){
+  this.name = 'person';
+  this.toString = function(){
+    return this.name;
+  };
+}
+var obj = new Person();
+console.log('inspect '+ util.inspect(obj,true));
+
+//util.isArray(obj)     判读是否是数组
+util.isArray([2,1,3]);
+util.isRegExp(new RegExp('regexp'));      //true
+util.isDate(new Date());
+util.isError(new Error());
+
+//文件读取fs
+var fpath = __dirname+'/input.txt';
+fs.readFile(fpath,function(err,data){
+  if (err) {
+    return console.log(err);
+  }
+  console.log('异步读取' + data.toString());
+})
+
+stats.isDirectory(fpath)
+fs.stats(fpath,function(err,stats){
+
+});
+//打开文件
+fs.open(fpath,'r+',function(err,fd){
+
+})
+//写入文件
+// fs.writeFile(fpath,data,options,callback),data可以是字符串或者buffer流
+
+//截取文件   fs.ftruncate(fd,len,callback); fd是通过open拿到的fd文件描述符
+
+//创建目录   fs.mkdir(path,mode,callback);  mode指目录权限默认是0777
+
+fs.mkdir(__dirname + '/tem/test',function(err){
+  if (err) {
+    return console.error(err);
+  }
+  console.log('目录创建成功');
+});
+
+// fs.rmdir()   删除目录
+
+//接收POST请求
+http.createServer(req,response){
+  var post = '';
+  req.on('data',function(chunk){
+    post += chunk;
+  });
+  req.on('end',function(){    //在end事件触发后，通过querystring.parse将post解析为真正的POST请求格式，然后向客户端返回。
+    post = querystring.parse(post);
+    response.end(util.inspect(post));
+  })
+}.listen(3000);
